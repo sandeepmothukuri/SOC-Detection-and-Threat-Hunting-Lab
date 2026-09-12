@@ -1,10 +1,6 @@
 # 🔐 SOC Analyst Home Lab
 
-[![Lab Validation](https://github.com/sandeepmothukuri/SOC-Detection-and-Threat-Hunting-Lab/actions/workflows/validate.yml/badge.svg)](https://github.com/sandeepmothukuri/SOC-Detection-and-Threat-Hunting-Lab/actions)
-[![Wazuh](https://img.shields.io/badge/SIEM-Wazuh-0066CC?logo=wazuh&logoColor=white)](https://wazuh.com/)
-[![MITRE ATT&CK](https://img.shields.io/badge/MITRE-ATT%26CK-red)](https://attack.mitre.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Stars](https://img.shields.io/github/stars/sandeepmothukuri/SOC-Detection-and-Threat-Hunting-Lab?style=social)](https://github.com/sandeepmothukuri/SOC-Detection-and-Threat-Hunting-Lab)
+[![Lab Validation](https://github.com/sandeepmothukuri/SOC-Detection-and-Threat-Hunting-Lab/actions/workflows/validate.yml/badge.svg)](https://github.com/sandeepmothukuri/SOC-Detection-and-Threat-Hunting-Lab/actions) [![Wazuh](https://img.shields.io/badge/SIEM-Wazuh-0066CC?logo=wazuh&logoColor=white)](https://wazuh.com/) [![MITRE ATT&CK](https://img.shields.io/badge/MITRE-ATT%26CK-red)](https://attack.mitre.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > **Hands-on SOC analyst lab** — brute-force attack simulation, endpoint detection with Wazuh SIEM + Sysmon, and MITRE ATT&CK mapping. Built from scratch to demonstrate real L1/L2 SOC detection workflows.
 
@@ -50,8 +46,8 @@ Wazuh Manager (Ubuntu)
 
 ### Prerequisites
 
-- VirtualBox → https://www.virtualbox.org/
-- VMware → https://www.vmware.com/
+- VirtualBox
+- VMware
 - Minimum: 8 GB RAM, 100 GB storage
 
 ### Deploy Wazuh SIEM
@@ -72,32 +68,14 @@ sysmon.exe -i sysmon-config.xml
 
 ### Windows Endpoint — Install Wazuh Agent
 
-Download: https://packages.wazuh.com/4.x/windows/wazuh-agent.msi
-
-Edit `C:\Program Files (x86)\ossec-agent\ossec.conf`:
-```xml
-<address>WAZUH-IP</address>
-```
-
-```powershell
-net start wazuh
-```
-
-### Connect Agent to Manager
-
-```bash
-sudo /var/ossec/bin/manage_agents
-```
+Download the Wazuh agent and configure the manager address in `ossec.conf`.
 
 ---
 
 ## ⚔️ Attack Simulation
 
 ```bash
-# Network scan
 nmap -sS <target-ip>
-
-# Brute force RDP
 hydra -l admin -P rockyou.txt rdp://<target-ip>
 ```
 
@@ -122,20 +100,6 @@ hydra -l admin -P rockyou.txt rdp://<target-ip>
 - **Trigger:** 5+ failed logins from the same source IP within 60 seconds
 - **Rule ID:** 100001 (custom)
 - **MITRE:** T1110 — Brute Force
-
-### Custom Wazuh Rule
-
-```xml
-<rule id="100001" level="10">
-  <if_sid>18107</if_sid>
-  <description>Brute force attack detected</description>
-  <mitre>T1110</mitre>
-</rule>
-```
-
-```bash
-sudo systemctl restart wazuh-manager
-```
 
 ---
 
@@ -166,40 +130,7 @@ sudo systemctl restart wazuh-manager
 
 ## 📸 Lab Evidence
 
-### 🧠 SOC Architecture
-
-![Architecture](images/architecture/soc-architecture/architecture.png)
-![Elastic Stack](images/architecture/soc-architecture/elastic-stack-integration.png)
-![ELK Wazuh](images/architecture/soc-architecture/combining-elk-wazuh-hids-and-elastalert-for-optimal-performance.png)
-![Wazuh Components](images/architecture/soc-architecture/wazuh-central-components.png)
-
-### 📊 Wazuh Dashboard
-
-![Dashboard](images/architecture/wazuh-dashboard/wazuh-dashboard-and-agent-deployment.png)
-![Log Analysis](images/architecture/wazuh-dashboard/log-data-analysis.png)
-![Cloud Security](images/architecture/wazuh-dashboard/monitoring-and-securing-cloud-workloads-with-wazuh.png)
-![Microsoft Graph](images/architecture/wazuh-dashboard/monitoring-microsoft-graph-services-with-wazuh.png)
-
-### 🚨 Brute Force Detection
-
-![4625 Failed Logon](images/architecture/bruteforce-alert/event-4625-failed-to-logon.png)
-![Detailed Logs](images/architecture/bruteforce-alert/failed-logon-events-id-4625-when-successfully-scanning-and-deploying-to-computers.png)
-![Process Info](images/architecture/bruteforce-alert/process-information.png)
-![Windows Event](images/architecture/bruteforce-alert/windows-event-id-4625-failed-logon.png)
-
-### ⚔️ Attack Simulation
-
-![Nmap Result](images/attacks/nmap-scan/interpreting-scan-results.png)
-![Brute Force](images/attacks/nmap-scan/brute-force-attack.jpg)
-![Terminal Scan](images/attacks/nmap-scan/nmap-scan-terminal-kali.webp)
-![External Scan](images/attacks/nmap-scan/nmap-external-port-scan-result.webp)
-
-### 🪟 Sysmon Logs
-
-![Network](images/logs/sysmon-process/sysmon-logs-network.png)
-![Event Log](images/logs/sysmon-process/generated-event-is-recorded-in-the-windows-event-log.png)
-![RDP Issue](images/logs/sysmon-process/sysmon-event-id-3---rdp-logon-issue-initiated--field-always-false.png)
-![Workstation](images/logs/sysmon-process/workstation-logs.png)
+The repository contains architecture, Wazuh dashboard, brute-force detection, attack simulation and Sysmon evidence images under `images/`.
 
 ---
 
@@ -213,16 +144,35 @@ sudo systemctl restart wazuh-manager
 
 ---
 
-## 👤 Author
+# 👤 Author
 
-**Sandeep Mothukuri**
-- Website: [cybertechnology.in](https://cybertechnology.in)
+## Sandeep Mothukuri
+
+**Senior SOC Analyst (L3) · Detection Engineering · Threat Hunting · Incident Response · Security Engineering**
+
+Focus areas:
+
+- Security Operations
+- Detection Engineering
+- Threat Hunting
+- Incident Response
+- SIEM / XDR
+- SOAR
+- DFIR
+- MITRE ATT&CK
+- Security Automation
+- AI-Augmented SOC Operations
+
+This repository is maintained as a practical security engineering environment for designing, testing and validating modern SOC capabilities.
+
 - GitHub: [@sandeepmothukuri](https://github.com/sandeepmothukuri)
-- LinkedIn: [sandeepmothukuri](https://www.linkedin.com/in/sandeepmothukuri)
+- Website: [cybertechnology.in](https://cybertechnology.in)
+- LinkedIn: [linkedin.com/in/sandeepmothukuri](https://www.linkedin.com/in/sandeepmothukuri)
+- Email: [sandeep.mothukuris@gmail.com](mailto:sandeep.mothukuris@gmail.com)
 
 ---
 
-## 🗂️ All Repositories
+# 🗂️ All Repositories
 
 | Repository | Description |
 |---|---|
@@ -231,10 +181,12 @@ sudo systemctl restart wazuh-manager
 | [Autonomous-SOC-Lab](https://github.com/sandeepmothukuri/Autonomous-SOC-Lab) | Autonomous SOC with AI-driven detection and self-healing playbooks |
 | [soc-threat-hunting-lab](https://github.com/sandeepmothukuri/soc-threat-hunting-lab) | Threat detection lab — Zeek, RITA, Arkime, Velociraptor, OSQuery, MISP |
 | [soc-lab-free](https://github.com/sandeepmothukuri/soc-lab-free) | Free SOC lab — OpenVAS, Wazuh, pfSense, Proxmox Mail, Lynis |
-| [SOC-Detection-and-Threat-Hunting-Lab](https://github.com/sandeepmothukuri/SOC-Detection-and-Threat-Hunting-Lab) | SOC analyst home lab — Wazuh SIEM, Sysmon, MITRE ATT&CK mapping |
-| [cyberblue](https://github.com/sandeepmothukuri/cyberblue) | Containerised blue team platform — SIEM, DFIR, CTI, SOAR, Network Analysis |
-
+| [SOC-Detection-and-Threat-Hunting-Lab](https://github.com/sandeepmothukuri/SOC-Detection-and-Threat-Hunting-Lab) | SOC analyst home lab — Wazuh, Sysmon, MITRE ATT&CK mapping and incident response |
+| [cyberblue](https://github.com/sandeepmothukuri/cyberblue) | Containerised blue-team platform — SIEM, DFIR, CTI, SOAR, Network Analysis |
+| [PromptSentinel](https://github.com/sandeepmothukuri/PromptSentinel) | Enterprise-grade prompt injection detection and AI firewall for LLM applications |
+| [PromptShield](https://github.com/sandeepmothukuri/PromptShield) | AI Security + SOC Detection Engineering Lab with prompt-security telemetry, detections and response |
+| [sentinel-detection-engine](https://github.com/sandeepmothukuri/sentinel-detection-engine) | Detection-as-code for Microsoft Sentinel and Defender XDR with KQL, SOAR and ATT&CK coverage |
+| [awesome-lists](https://github.com/sandeepmothukuri/awesome-lists) | SOC/DFIR detection lists, threat-hunting references and security research resources |
 
 ---
 ⭐ **Star this repo if it helped you — it helps other SOC analysts find it!**
-
