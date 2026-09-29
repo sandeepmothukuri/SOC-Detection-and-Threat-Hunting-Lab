@@ -1,20 +1,88 @@
-<group name="custom_rules">
+<!--
+  Wazuh Advanced Correlation Rules: Multi-Stage Compromise Detection
+  Author: Sandeep Mothukuri
+  Description: Advanced SIEM correlation rules linking reconnaissance, brute-force alerts,
+               successful compromise (Event ID 4624), privilege assignment (Event ID 4672),
+               and Sysmon endpoint process telemetry (Event ID 1 & 3).
+  Target MITRE ATT&CK: T1078, T1046, T1059.001, T1087, T1021.001, T1068
+-->
+<group name="windows,correlation,advanced_detection,sysmon,">
 
-  <rule id="100001" level="10">
-    <if_sid>18107</if_sid>
-    <description>Brute force attack detected</description>
-    <mitre>T1110</mitre>
+  <!-- Successful RDP Logon (Event ID 4624, Logon Type 10) -->
+  <rule id="100010" level="6">
+    <if_sid>60106</if_sid>
+    <field name="win.system.eventID">^4624$</field>
+    <field name="win.eventdata.logonType">^10$</field>
+    <description>Windows: Successful Remote Desktop (RDP) Logon for user $(win.eventdata.targetUserName) from $(win.eventdata.ipAddress)</description>
+    <mitre>
+      <id>T1078</id>
+      <id>T1021.001</id>
+    </mitre>
+    <group>authentication_success,rdp_success,</group>
   </rule>
 
-  <rule id="100002" level="8">
-    <if_sid>4624</if_sid>
-    <description>Successful login detected</description>
-    <mitre>T1078</mitre>
+  <!-- CRITICAL CORRELATION: Successful RDP Logon from Source IP with recent Brute-Force alert (compromise confirmation) -->
+  <rule id="100011" level="14" timeframe="300">
+    <if_sid>100010</if_sid>
+    <if_matched_sid>100003</if_matched_sid>
+    <same_source_ip />
+    <description>CRITICAL ALERT: Successful RDP Authentication following Brute-Force Attack from $(win.eventdata.ipAddress) for user $(win.eventdata.targetUserName)! Potential Compromise!</description>
+    <mitre>
+      <id>T1110</id>
+      <id>T1078</id>
+      <id>T1021.001</id>
+    </mitre>
+    <group>attack_success,compromise,pci_dss_10.2.4,pci_dss_10.2.5,</group>
   </rule>
 
-  <rule id="100003" level="12">
-    <if_sid>4672</if_sid>
-    <description>Privilege escalation detected</description>
+  <!-- Sensitive Privilege Assignment to New Logon Session (Event ID 4672) -->
+  <rule id="100012" level="8">
+    <if_sid>60106</if_sid>
+    <field name="win.system.eventID">^4672$</field>
+    <description>Windows: Administrator / Special Privileges Assigned to Logon Session ($(win.eventdata.subjectUserName))</description>
+    <mitre>
+      <id>T1078.001</id>
+      <id>T1068</id>
+    </mitre>
+    <group>privilege_escalation,</group>
+  </rule>
+
+  <!-- Sysmon Event ID 3: External Inbound Network Connection to RDP Port 3389 -->
+  <rule id="100013" level="6">
+    <if_sid>61605</if_sid>
+    <field name="win.eventdata.destinationPort">^3389$</field>
+    <description>Sysmon: Inbound Network Connection Established to RDP Service (Port 3389) from $(win.eventdata.sourceIp)</description>
+    <mitre>
+      <id>T1021.001</id>
+      <id>T1046</id>
+    </mitre>
+    <group>sysmon,sysmon_eid3,network_connection,</group>
+  </rule>
+
+  <!-- Sysmon Event ID 1: Suspicious Reconnaissance / Discovery Process Execution (whoami / net user / ipconfig) -->
+  <rule id="100014" level="10">
+    <if_sid>61603</if_sid>
+    <field name="win.eventdata.image" type="pcre2">(?i)(whoami\.exe|net\.exe|net1\.exe|nltest\.exe|systeminfo\.exe|ipconfig\.exe|cmd\.exe|powershell\.exe)</field>
+    <field name="win.eventdata.parentImage" type="pcre2">(?i)(svchost\.exe|rdpclip\.exe|taskmgr\.exe)</field>
+    <description>Sysmon: Suspicious Discovery / Shell Process ($(win.eventdata.originalFileName)) Spawned by RDP Session</description>
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1087</id>
+      <id>T1082</id>
+      <id>T1016</id>
+    </mitre>
+    <group>sysmon,sysmon_eid1,discovery,execution,</group>
+  </rule>
+
+  <!-- Windows Event ID 4720: User Account Created -->
+  <rule id="100015" level="10">
+    <if_sid>60134</if_sid>
+    <field name="win.system.eventID">^4720$</field>
+    <description>Windows: New Local User Account Created: $(win.eventdata.targetUserName) by $(win.eventdata.subjectUserName)</description>
+    <mitre>
+      <id>T1136.001</id>
+    </mitre>
+    <group>account_management,persistence,</group>
   </rule>
 
 </group>

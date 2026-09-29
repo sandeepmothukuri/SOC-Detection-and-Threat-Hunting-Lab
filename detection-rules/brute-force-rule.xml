@@ -1,5 +1,70 @@
-<rule id="100001" level="10">
-  <if_sid>18107</if_sid>
-  <description>Brute force attack detected</description>
-  <mitre>T1110</mitre>
-</rule>
+<!--
+  Wazuh Custom Detection Rules: RDP & Network Authentication Brute-Force
+  Author: Sandeep Mothukuri
+  Description: Custom detection rules targeting Windows Event ID 4625 (Logon Failure),
+               RDP Logon Type 10 credential stuffing, and threshold-based brute-force attacks.
+  Target MITRE ATT&CK: T1110, T1110.001, T1110.003
+-->
+<group name="windows,authentication_failure,brute_force,">
+
+  <!-- Base Detection: Windows Logon Failure (Event ID 4625) -->
+  <rule id="100001" level="5">
+    <if_sid>60122</if_sid>
+    <field name="win.system.eventID">^4625$</field>
+    <description>Windows: User Authentication Failure (Event ID 4625) on $(win.system.computer)</description>
+    <mitre>
+      <id>T1110</id>
+      <id>T1078</id>
+    </mitre>
+    <group>authentication_failed,pci_dss_10.2.4,pci_dss_10.2.5,gdpr_IV_35.7.d,hipaa_164.312.b,nist_800_53_AU.14,nist_800_53_AC.7,</group>
+  </rule>
+
+  <!-- Specific: Remote Desktop Protocol (RDP) Logon Failure (Logon Type 10) -->
+  <rule id="100002" level="7">
+    <if_sid>100001</if_sid>
+    <field name="win.eventdata.logonType">^10$</field>
+    <description>Windows: Failed Remote Desktop (RDP) Logon Attempt (Logon Type 10) from Source IP $(win.eventdata.ipAddress)</description>
+    <mitre>
+      <id>T1110.001</id>
+      <id>T1021.001</id>
+    </mitre>
+    <group>authentication_failed,rdp_failure,</group>
+  </rule>
+
+  <!-- Correlated: Multiple RDP Logon Failures - Threshold Alert (5 failed attempts in 60s) -->
+  <rule id="100003" level="10" frequency="5" timeframe="60">
+    <if_matched_sid>100002</if_matched_sid>
+    <same_source_ip />
+    <description>Wazuh Alert: Potential RDP Brute-Force Attack Detected against $(win.system.computer) from $(win.eventdata.ipAddress) [5+ Failed Attempts in 60s]</description>
+    <mitre>
+      <id>T1110</id>
+      <id>T1110.001</id>
+    </mitre>
+    <group>authentication_failures,attack,bruteforce,</group>
+  </rule>
+
+  <!-- High-Frequency Attack: 15+ Failed attempts in 120s - Automated Tool Signature (Hydra/Crowbar) -->
+  <rule id="100004" level="12" frequency="15" timeframe="120">
+    <if_matched_sid>100002</if_matched_sid>
+    <same_source_ip />
+    <description>CRITICAL: High-Volume Automated RDP Password Spray / Brute-Force Attack from $(win.eventdata.ipAddress)</description>
+    <mitre>
+      <id>T1110.001</id>
+      <id>T1110.003</id>
+    </mitre>
+    <group>authentication_failures,active_attack,</group>
+  </rule>
+
+  <!-- Account Lockout Alert (Event ID 4740) caused by brute force -->
+  <rule id="100005" level="11">
+    <if_sid>60138</if_sid>
+    <field name="win.system.eventID">^4740$</field>
+    <description>Windows: User Account Locked Out ($(win.eventdata.targetUserName)) following repeated authentication failures</description>
+    <mitre>
+      <id>T1110</id>
+      <id>T1078</id>
+    </mitre>
+    <group>account_lockout,authentication_failed,</group>
+  </rule>
+
+</group>

@@ -1,5 +1,136 @@
-<Sysmon schemaversion="4.50">
+<!--
+  Sysmon Modular Configuration - SOC Detection & Threat Hunting Lab
+  Author: Sandeep Mothukuri
+  Description: Production-tuned telemetry configuration based on SwiftOnSecurity & MITRE ATT&CK.
+  Tuned for detecting Reconnaissance, Brute-Force, Privilege Escalation, Credential Dumping, and Lateral Movement.
+-->
+<Sysmon schemaversion="4.90">
+  <!-- Hash algorithms: MD5, SHA256, IMPHASH for binary correlation -->
+  <HashAlgorithms>MD5,SHA256,IMPHASH</HashAlgorithms>
+  <CheckRevocation />
+
   <EventFiltering>
-    <ProcessCreate onmatch="include"/>
+
+    <!-- EVENT ID 1: PROCESS CREATION [Technique: T1059, T1055, T1036] -->
+    <RuleGroup name="ProcessCreate" groupRelation="or">
+      <ProcessCreate onmatch="include">
+        <!-- Suspicious Command Line Tools & LOLBAS -->
+        <CommandLine condition="contains">whoami</CommandLine>
+        <CommandLine condition="contains">net user</CommandLine>
+        <CommandLine condition="contains">net localgroup</CommandLine>
+        <CommandLine condition="contains">nltest</CommandLine>
+        <CommandLine condition="contains">systeminfo</CommandLine>
+        <CommandLine condition="contains">mimikatz</CommandLine>
+        <CommandLine condition="contains">procdump</CommandLine>
+        <CommandLine condition="contains">Invoke-Mimikatz</CommandLine>
+        <CommandLine condition="contains">-encodedCommand</CommandLine>
+        <CommandLine condition="contains">-enc</CommandLine>
+        <CommandLine condition="contains">vssadmin delete shadows</CommandLine>
+        <CommandLine condition="contains">wevtutil cl</CommandLine>
+
+        <!-- Command Interpreters and Scripting -->
+        <Image condition="image">cmd.exe</Image>
+        <Image condition="image">powershell.exe</Image>
+        <Image condition="image">powershell_ise.exe</Image>
+        <Image condition="image">pwsh.exe</Image>
+        <Image condition="image">wscript.exe</Image>
+        <Image condition="image">cscript.exe</Image>
+        <Image condition="image">mshta.exe</Image>
+        <Image condition="image">rundll32.exe</Image>
+        <Image condition="image">regsvr32.exe</Image>
+        <Image condition="image">certutil.exe</Image>
+        <Image condition="image">bitsadmin.exe</Image>
+
+        <!-- Parent Processes associated with Remote Sessions -->
+        <ParentImage condition="image">rdpclip.exe</ParentImage>
+        <ParentImage condition="image">termsv.exe</ParentImage>
+        <ParentImage condition="image">wsmprovhost.exe</ParentImage>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!-- EVENT ID 3: NETWORK CONNECTION [Technique: T1021.001, T1046, T1071] -->
+    <RuleGroup name="NetworkConnect" groupRelation="or">
+      <NetworkConnect onmatch="include">
+        <!-- RDP Traffic Monitoring -->
+        <DestinationPort condition="is">3389</DestinationPort>
+        <SourcePort condition="is">3389</SourcePort>
+
+        <!-- SMB and WinRM Traffic Monitoring -->
+        <DestinationPort condition="is">445</DestinationPort>
+        <DestinationPort condition="is">135</DestinationPort>
+        <DestinationPort condition="is">5985</DestinationPort>
+        <DestinationPort condition="is">5986</DestinationPort>
+
+        <!-- Inbound connections from administrative and script hosts -->
+        <Image condition="image">powershell.exe</Image>
+        <Image condition="image">cmd.exe</Image>
+        <Image condition="image">rundll32.exe</Image>
+        <Image condition="image">mshta.exe</Image>
+        <Image condition="image">certutil.exe</Image>
+      </NetworkConnect>
+    </RuleGroup>
+
+    <!-- EVENT ID 5: PROCESS TERMINATION -->
+    <RuleGroup name="ProcessTerminate" groupRelation="or">
+      <ProcessTerminate onmatch="include">
+        <Image condition="image">svchost.exe</Image>
+        <Image condition="image">wazuh-agent.exe</Image>
+      </ProcessTerminate>
+    </RuleGroup>
+
+    <!-- EVENT ID 7: IMAGE LOADED (DLL Hijacking / Injection) -->
+    <RuleGroup name="ImageLoad" groupRelation="or">
+      <ImageLoad onmatch="include">
+        <ImageLoaded condition="contains">samlib.dll</ImageLoaded>
+        <ImageLoaded condition="contains">vaultcli.dll</ImageLoaded>
+        <ImageLoaded condition="contains">wdigest.dll</ImageLoaded>
+      </ImageLoad>
+    </RuleGroup>
+
+    <!-- EVENT ID 8: CREATE REMOTE THREAD (Process Injection: T1055) -->
+    <RuleGroup name="CreateRemoteThread" groupRelation="or">
+      <CreateRemoteThread onmatch="exclude">
+        <SourceImage condition="is">C:\Windows\System32\wbem\WmiPrvSE.exe</SourceImage>
+      </CreateRemoteThread>
+    </RuleGroup>
+
+    <!-- EVENT ID 10: PROCESS ACCESS (LSASS Credential Dumping: T1003.001) -->
+    <RuleGroup name="ProcessAccess" groupRelation="or">
+      <ProcessAccess onmatch="include">
+        <TargetImage condition="is">C:\Windows\System32\lsass.exe</TargetImage>
+      </ProcessAccess>
+    </RuleGroup>
+
+    <!-- EVENT ID 11: FILE CREATE (Drops in Staging Directories: T1105) -->
+    <RuleGroup name="FileCreate" groupRelation="or">
+      <FileCreate onmatch="include">
+        <TargetFilename condition="contains">\AppData\Local\Temp\</TargetFilename>
+        <TargetFilename condition="contains">\Windows\Temp\</TargetFilename>
+        <TargetFilename condition="end with">.exe</TargetFilename>
+        <TargetFilename condition="end with">.ps1</TargetFilename>
+        <TargetFilename condition="end with">.bat</TargetFilename>
+        <TargetFilename condition="end with">.vbs</TargetFilename>
+      </FileCreate>
+    </RuleGroup>
+
+    <!-- EVENT ID 12, 13, 14: REGISTRY MODIFICATION (Persistence: T1547.001, T1112) -->
+    <RuleGroup name="RegistryEvent" groupRelation="or">
+      <RegistryEvent onmatch="include">
+        <TargetObject condition="contains">\CurrentVersion\Run</TargetObject>
+        <TargetObject condition="contains">\CurrentVersion\RunOnce</TargetObject>
+        <TargetObject condition="contains">\Terminal Server\fDenyTSConnections</TargetObject>
+        <TargetObject condition="contains">\Winlogon\SpecialAccounts</TargetObject>
+        <TargetObject condition="contains">\Services\RemoteDesktop</TargetObject>
+      </RegistryEvent>
+    </RuleGroup>
+
+    <!-- EVENT ID 22: DNS QUERY (C2 & Exfiltration: T1071.004) -->
+    <RuleGroup name="DnsQuery" groupRelation="or">
+      <DnsQuery onmatch="exclude">
+        <QueryName condition="end with">.microsoft.com</QueryName>
+        <QueryName condition="end with">.windowsupdate.com</QueryName>
+      </DnsQuery>
+    </RuleGroup>
+
   </EventFiltering>
 </Sysmon>

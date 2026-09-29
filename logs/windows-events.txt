@@ -1,5 +1,199 @@
-Event ID 4625 - Failed login attempt
-Event ID 4624 - Successful login
-Event ID 4740 - Account locked
-Event ID 4672 - Admin privileges assigned
-Event ID 4663 - File access attempt
+================================================================================
+WINDOWS SECURITY & SYSMON TELEMETRY EXPORT - ATTACK SIMULATION LOGS
+Host: WIN10-ENDPOINT | IP: 192.168.56.20 | Attacker IP: 192.168.56.30
+================================================================================
+
+[EVENT 1: NMAP PORT RECONNAISSANCE - SYSMON EVENT ID 3]
+Log Name:      Microsoft-Windows-Sysmon/Operational
+Source:        Microsoft-Windows-Sysmon
+Date:          2026-09-12 10:00:15 UTC
+Event ID:      3
+Task Category: Network connection detected
+Level:         Information
+Keywords:      
+User:          NT AUTHORITY\SYSTEM
+Computer:      WIN10-ENDPOINT
+Description:
+Network connection detected:
+  RuleName: -
+  UtcTime: 2026-09-12 10:00:15.102
+  ProcessGuid: {a1b2c3d4-0001-0000-0000-000000000000}
+  ProcessId: 1048
+  Image: C:\Windows\System32\svchost.exe
+  User: NT AUTHORITY\NETWORK SERVICE
+  Protocol: tcp
+  Initiated: false
+  SourceIsIpv6: false
+  SourceIp: 192.168.56.30
+  SourceHostname: kali-attacker
+  SourcePort: 48920
+  DestinationIsIpv6: false
+  DestinationIp: 192.168.56.20
+  DestinationHostname: WIN10-ENDPOINT
+  DestinationPort: 3389
+  DestinationPortName: rdp
+
+--------------------------------------------------------------------------------
+
+[EVENT 2: RDP FAILED LOGON #1 - EVENT ID 4625 (Logon Type 10)]
+Log Name:      Security
+Source:        Microsoft-Windows-Security-Auditing
+Date:          2026-09-12 10:01:25 UTC
+Event ID:      4625
+Task Category: Logon
+Level:         Information
+Keywords:      Audit Failure
+User:          N/A
+Computer:      WIN10-ENDPOINT
+Description:
+An account failed to log on.
+
+Subject:
+	Security ID:		S-1-0-0
+	Account Name:		-
+	Account Domain:		-
+	Logon ID:		0x0
+
+Logon Type:			10
+
+Account For Which Logon Failed:
+	Security ID:		S-1-0-0
+	Account Name:		Administrator
+	Account Domain:		WIN10-ENDPOINT
+
+Failure Information:
+	Failure Reason:		Unknown user name or bad password.
+	Status:			0xC000006D
+	Sub Status:		0xC000006A
+
+Process Information:
+	Caller Process ID:	0x2c4
+	Caller Process Name:	C:\Windows\System32\svchost.exe
+
+Network Information:
+	Workstation Name:	WIN10-ENDPOINT
+	Source Network Address:	192.168.56.30
+	Source Port:		51244
+
+Detailed Authentication Information:
+	Logon Process:		User32 
+	Authentication Package:	Negotiate
+	Transited Services:	-
+	Package Name (NTLM only):	-
+	Key Length:		0
+
+--------------------------------------------------------------------------------
+
+[EVENT 3: RDP FAILED LOGON #2 - EVENT ID 4625 (Logon Type 10)]
+Log Name:      Security
+Source:        Microsoft-Windows-Security-Auditing
+Date:          2026-09-12 10:01:28 UTC
+Event ID:      4625
+Task Category: Logon
+Level:         Information
+Keywords:      Audit Failure
+User:          N/A
+Computer:      WIN10-ENDPOINT
+Description:
+An account failed to log on.
+Account Name: Administrator
+Logon Type: 10
+Failure Reason: Unknown user name or bad password.
+Status: 0xC000006D
+Sub Status: 0xC000006A
+Source Network Address: 192.168.56.30
+Source Port: 51246
+
+--------------------------------------------------------------------------------
+
+[EVENT 4: RDP FAILED LOGON #3 - EVENT ID 4625 (Logon Type 10)]
+Log Name:      Security
+Source:        Microsoft-Windows-Security-Auditing
+Date:          2026-09-12 10:01:31 UTC
+Event ID:      4625
+Task Category: Logon
+Level:         Information
+Keywords:      Audit Failure
+User:          N/A
+Computer:      WIN10-ENDPOINT
+Description:
+An account failed to log on.
+Account Name: Administrator
+Logon Type: 10
+Failure Reason: Unknown user name or bad password.
+Status: 0xC000006D
+Sub Status: 0xC000006A
+Source Network Address: 192.168.56.30
+Source Port: 51248
+
+--------------------------------------------------------------------------------
+
+[EVENT 5: RDP FAILED LOGON #4 - EVENT ID 4625 (Logon Type 10)]
+Log Name:      Security
+Source:        Microsoft-Windows-Security-Auditing
+Date:          2026-09-12 10:01:35 UTC
+Event ID:      4625
+Task Category: Logon
+Level:         Information
+Keywords:      Audit Failure
+User:          N/A
+Computer:      WIN10-ENDPOINT
+Description:
+An account failed to log on.
+Account Name: Administrator
+Logon Type: 10
+Failure Reason: Unknown user name or bad password.
+Status: 0xC000006D
+Sub Status: 0xC000006A
+Source Network Address: 192.168.56.30
+Source Port: 51250
+
+--------------------------------------------------------------------------------
+
+[EVENT 6: RDP FAILED LOGON #5 (BRUTE-FORCE THRESHOLD MET) - EVENT ID 4625]
+Log Name:      Security
+Source:        Microsoft-Windows-Security-Auditing
+Date:          2026-09-12 10:01:38 UTC
+Event ID:      4625
+Task Category: Logon
+Level:         Information
+Keywords:      Audit Failure
+User:          N/A
+Computer:      WIN10-ENDPOINT
+Description:
+An account failed to log on.
+Account Name: Administrator
+Logon Type: 10
+Failure Reason: Unknown user name or bad password.
+Status: 0xC000006D
+Sub Status: 0xC000006A
+Source Network Address: 192.168.56.30
+Source Port: 51252
+
+--------------------------------------------------------------------------------
+
+[EVENT 7: ACCOUNT LOCKOUT TRIGGERED - EVENT ID 4740]
+Log Name:      Security
+Source:        Microsoft-Windows-Security-Auditing
+Date:          2026-09-12 10:02:15 UTC
+Event ID:      4740
+Task Category: User Account Management
+Level:         Information
+Keywords:      Audit Success
+User:          NT AUTHORITY\SYSTEM
+Computer:      WIN10-ENDPOINT
+Description:
+A user account was locked out.
+
+Subject:
+	Security ID:		S-1-5-18
+	Account Name:		WIN10-ENDPOINT$
+	Account Domain:		WORKGROUP
+	Logon ID:		0x3E7
+
+Account That Was Locked Out:
+	Security ID:		S-1-5-21-3623811015-3361044348-30300820-500
+	Account Name:		Administrator
+
+Additional Information:
+	Caller Computer Name:	WIN10-ENDPOINT
