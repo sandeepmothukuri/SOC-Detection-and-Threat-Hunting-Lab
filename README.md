@@ -42,7 +42,8 @@ The core scenario targets a critical real-world attack vector: **Automated Netwo
 | **SIEM & Analytics** | Wazuh 4.7 Central Manager + OpenSearch Indexer (`192.168.56.10`) | Real-time eventchannel decoder + correlation engine |
 | **Endpoint Telemetry** | High-frequency Logon Failures (Logon Type 10) & Inbound TCP | Windows Event ID **4625**, **4740**, Sysmon Event ID **3**, **1** |
 | **Detection Engine** | Stateful correlation: 5+ failed RDP attempts within 60s from same IP | Wazuh Custom Rule **100003** (Level 10 Alert) |
-| **Incident Outcome** | Real-time alert generation; automatic account lockout; attacker IP containment | **Zero Compromise** (No Event ID 4624 generated) |
+| **Active Response** | Automated host isolation / dynamic IP drop on attacker | Wazuh `firewall-drop` script execution |
+| **Incident Outcome** | Real-time alert generation; automatic account lockout; attacker IP contained | **Zero Compromise** (No Event ID 4624 generated) |
 
 ---
 
@@ -61,20 +62,25 @@ The core scenario targets a critical real-world attack vector: **Automated Netwo
    - [Automated Attack Script Execution](#automated-attack-script-execution)
 5. [Blue-Team Endpoint Telemetry & Forensic Artifacts](#5-blue-team-endpoint-telemetry--forensic-artifacts)
    - [5.1 Windows Security Event Log Forensics (4625, 4624, 4740)](#51-windows-security-event-log-forensics)
-   - [5.2 Microsoft Sysmon Network & Process Telemetry (EID 3, EID 1)](#52-microsoft-sysmon-network--process-telemetry)
+   - [5.2 Deep-Dive: NTSTATUS Failure Codes & User Enumeration](#52-deep-dive-ntstatus-failure-codes--user-enumeration)
+   - [5.3 Deep-Dive: Logon Type 10 (RemoteInteractive) vs Logon Type 3 (Network)](#53-deep-dive-logon-type-10-remoteinteractive-vs-logon-type-3-network)
+   - [5.4 Microsoft Sysmon Network & Process Telemetry (EID 3, EID 1)](#54-microsoft-sysmon-network--process-telemetry-eid-3-eid-1)
 6. [SIEM Detection Engineering (Wazuh Rules)](#6-siem-detection-engineering-wazuh-rules)
    - [6.1 Custom Detection Rule Architecture](#61-custom-detection-rule-architecture)
    - [6.2 Rule Testing & Verification with `wazuh-logtest`](#62-rule-testing--verification-with-wazuh-logtest)
    - [6.3 Live SIEM Dashboard & Alert Triage](#63-live-siem-dashboard--alert-triage)
+   - [6.4 Automated Active Response (Auto-Block Attacker IP)](#64-automated-active-response-auto-block-attacker-ip)
 7. [Threat Hunting Playbook & Multi-SIEM Queries](#7-threat-hunting-playbook--multi-siem-queries)
    - [Wazuh / OpenSearch Query DSL](#wazuh--opensearch-query-dsl)
    - [Splunk Search Processing Language (SPL)](#splunk-search-processing-language-spl)
    - [Microsoft Sentinel KQL](#microsoft-sentinel-kql)
 8. [SOC Incident Response & Investigation Playbook](#8-soc-incident-response--investigation-playbook)
 9. [Hardening & Defensive Countermeasures](#9-hardening--defensive-countermeasures)
-10. [📸 Complete Visual Evidence Gallery](#10--complete-visual-evidence-gallery)
-11. [Repository Structure](#11-repository-structure)
-12. [Author Profile & Portfolio](#12-author)
+10. [Operational Troubleshooting & Verification FAQ](#10-operational-troubleshooting--verification-faq)
+11. [Senior SOC Analyst Interview & Defense Guide](#11-senior-soc-analyst-interview--defense-guide)
+12. [📸 Complete Visual Evidence Gallery](#12--complete-visual-evidence-gallery)
+13. [Repository Structure](#13-repository-structure)
+14. [Author Profile & Portfolio](#14-author)
 
 ---
 
@@ -182,19 +188,24 @@ For exhaustive manual configuration steps, refer to [`setup/wazuh-setup.md`](set
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y curl apt-transport-https lsb-release gnupg2 tar ufw
 
-# 2. Configure Host Firewall (UFW)
+# 2. CRITICAL: Configure Kernel Memory Map Count for OpenSearch/Wazuh Indexer
+# Wazuh Indexer requires vm.max_map_count >= 262144 to prevent fatal startup crashes
+sudo sysctl -w vm.max_map_count=262144
+echo "vm.max_map_count=262144" | sudo tee -a /etc/sysctl.conf
+
+# 3. Configure Host Firewall (UFW)
 sudo ufw allow 1514/tcp comment "Wazuh Agent Events"
 sudo ufw allow 1515/tcp comment "Wazuh Agent Enrollment"
 sudo ufw allow 55000/tcp comment "Wazuh REST API"
 sudo ufw allow 443/tcp comment "Wazuh Dashboard Web UI"
 sudo ufw enable
 
-# 3. Deploy Wazuh All-in-One Architecture via Automated Assistant
+# 4. Deploy Wazuh All-in-One Architecture via Automated Assistant
 curl -sO https://packages.wazuh.com/4.7/wazuh-install.sh
 curl -sO https://packages.wazuh.com/4.7/config.yml
 sudo bash wazuh-install.sh -a
 
-# 4. Extract generated cluster credentials
+# 5. Extract generated cluster credentials
 sudo tar -xvf wazuh-install-files.tar
 sudo cat wazuh-install-files/wazuh-passwords.txt
 ```
@@ -217,13 +228,17 @@ Open an elevated PowerShell terminal (`Run as Administrator`) on `WIN10-ENDPOINT
 Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
 Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-# 2. Configure Advanced Audit Policies (Captures 4624, 4625, 4672, 4740)
+# 2. Configure Network Level Authentication (NLA)
+# Simulation Option: Disable NLA so brute-force tools generate Logon Type 10 (RemoteInteractive)
+(Get-WmiObject -Class Win32_TSGeneralSetting -Namespace root\cimv2\TerminalServices -Filter "TerminalName='RDP-Tcp'").SetUserAuthenticationRequired(0)
+
+# 3. Configure Advanced Audit Policies (Captures 4624, 4625, 4672, 4740)
 auditpol /set /subcategory:"Logon" /success:enable /failure:enable
 auditpol /set /subcategory:"Logoff" /success:enable /failure:enable
 auditpol /set /subcategory:"Account Lockout" /success:enable /failure:enable
 auditpol /set /subcategory:"Special Logon" /success:enable /failure:enable
 
-# 3. Enable Process Creation and Command-Line Auditing
+# 4. Enable Process Creation and Command-Line Auditing
 auditpol /set /subcategory:"Process Creation" /success:enable /failure:disable
 New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit" `
   -Name "ProcessCreationIncludeCmdLine_Enabled" -PropertyType DWord -Value 1 -Force
@@ -254,16 +269,19 @@ Get-Service -Name "Sysmon64"
 ### 3.4 Wazuh Windows Agent Silent Enrollment
 
 ```powershell
-# 1. Download and silently install Wazuh Agent MSI
+# 1. Verify Network Connectivity to Wazuh Manager Port 1514 (Agent Telemetry)
+Test-NetConnection -ComputerName "192.168.56.10" -Port 1514
+
+# 2. Download and silently install Wazuh Agent MSI
 $ManagerIP = "192.168.56.10"
 Invoke-WebRequest -Uri "https://packages.wazuh.com/4.x/windows/wazuh-agent-4.7.2-1.msi" -OutFile "C:\Tools\wazuh-agent.msi"
 
 Start-Process msiexec.exe -Wait -ArgumentList "/i C:\Tools\wazuh-agent.msi /q WAZUH_MANAGER='$ManagerIP' WAZUH_REGISTRATION_SERVER='$ManagerIP'"
 
-# 2. Ensure ossec.conf includes Security and Sysmon channels
+# 3. Ensure ossec.conf includes Security and Sysmon channels
 # Path: C:\Program Files (x86)\ossec-agent\ossec.conf
 
-# 3. Start Agent Service
+# 4. Start Agent Service
 Restart-Service -Name "WazuhSvc"
 Get-Service -Name "WazuhSvc"
 ```
@@ -311,9 +329,12 @@ nmap -sS -sV -p 3389 -Pn 192.168.56.20
 
 ### Phase 2: Automated RDP Brute-Force Attack (MITRE T1110.001)
 
-The attacker launches an automated password guessing attack using Hydra with dictionary wordlists:
+The attacker prepares the dictionary wordlist and launches an automated password guessing attack using Hydra:
 
 ```bash
+# Decompress rockyou wordlist if compressed in standard Kali installation
+[ -f /usr/share/wordlists/rockyou.txt ] || sudo gzip -d -k /usr/share/wordlists/rockyou.txt.gz
+
 # Execute automated RDP password spraying against Administrator
 hydra -V -t 4 -l Administrator -P /usr/share/wordlists/rockyou.txt rdp://192.168.56.20
 ```
@@ -394,7 +415,32 @@ Caller Computer Name: WIN10-ENDPOINT
 
 ---
 
-### 5.2 Microsoft Sysmon Network & Process Telemetry
+### 5.2 Deep-Dive: NTSTATUS Failure Codes & User Enumeration
+
+In Windows Security Event ID 4625, the combination of **Status** and **SubStatus** codes reveals the exact failure mechanism:
+
+| Status Code | SubStatus Code | Meaning / Mechanism | SOC Analyst Triage Insight |
+|:---:|:---:|:---|:---|
+| `0xC000006D` | `0xC000006A` | Valid user name, bad password | **Targeted Password Guessing:** Attacker knows a valid account name and is testing passwords. |
+| `0xC000006D` | `0xC0000064` | User name does not exist | **User Enumeration / Spraying:** Attacker is cycling through usernames to map active directory accounts. |
+| `0xC000006D` | `0xC0000234` | Account is currently locked out | **Denial of Service / Threshold Hit:** Brute-force threshold crossed; account locked. |
+| `0xC000006D` | `0xC0000072` | Account is currently disabled | **Dormant Account Target:** Attacker attempting to authenticate against an administrative account left inactive. |
+| `0xC000006D` | `0xC000006E` | Account restriction (workstation/time) | **Unauthorized Endpoint:** User tried to authenticate from an unauthorized IP or outside permitted hours. |
+
+---
+
+### 5.3 Deep-Dive: Logon Type 10 (RemoteInteractive) vs Logon Type 3 (Network)
+
+Understanding the logon type is essential for accurately writing detection rules:
+
+- **Logon Type 10 (RemoteInteractive):** Generated when an interactive remote desktop terminal session is established *prior* to credential validation (e.g. RDP connections with **Network Level Authentication disabled**).
+- **Logon Type 3 (Network):** Generated when authentication occurs over the network before an interactive desktop is spawned (e.g. RDP connections with **Network Level Authentication enabled** using CredSSP, or SMB / WinRM connections).
+- **Logon Type 2 (Interactive):** Physical console logon at the machine keyboard/monitor.
+- **Logon Type 7 (Unlock):** Workstation unlock attempt after lock screen.
+
+---
+
+### 5.4 Microsoft Sysmon Network & Process Telemetry (EID 3, EID 1)
 
 Sysmon captures network session initiations and process lineage independently from Windows Security logs:
 
@@ -520,6 +566,31 @@ Expected Output:
 
 ---
 
+### 6.4 Automated Active Response (Auto-Block Attacker IP)
+
+Wazuh features native Active Response capabilities to execute remediation scripts upon rule matches. To automatically block any host initiating an RDP brute-force attack:
+
+Add to `/var/ossec/etc/ossec.conf` on the Wazuh Manager:
+
+```xml
+<!-- Define Active Response Command -->
+<command>
+  <name>firewall-drop</name>
+  <executable>firewall-drop</executable>
+  <timeout_allowed>yes</timeout_allowed>
+</command>
+
+<!-- Trigger dynamic firewall block on Rule 100003 for 10 minutes -->
+<active-response>
+  <command>firewall-drop</command>
+  <location>local</location>
+  <rules_id>100003</rules_id>
+  <timeout>600</timeout>
+</active-response>
+```
+
+---
+
 ## 7. Threat Hunting Playbook & Multi-SIEM Queries
 
 ### Wazuh / OpenSearch Query DSL
@@ -614,7 +685,41 @@ A complete L3 Incident Response Report for Case `INC-2026-0912-001` is maintaine
 
 ---
 
-## 10. 📸 Complete Visual Evidence Gallery
+## 10. Operational Troubleshooting & Verification FAQ
+
+### Q1: Wazuh Indexer fails to start on Ubuntu with error `max virtual memory areas vm.max_map_count [65530] is too low`
+- **Root Cause:** OpenSearch requires kernel virtual memory allocation limits of at least 262,144 areas.
+- **Fix:** Execute `sudo sysctl -w vm.max_map_count=262144` and persist it by adding `vm.max_map_count=262144` to `/etc/sysctl.conf`. Then restart the indexer: `sudo systemctl restart wazuh-indexer`.
+
+### Q2: Hydra throws `file not found` when using `/usr/share/wordlists/rockyou.txt` on Kali
+- **Root Cause:** Kali Linux ships `rockyou.txt` compressed as `rockyou.txt.gz`.
+- **Fix:** Run `sudo gzip -d -k /usr/share/wordlists/rockyou.txt.gz` (the `-k` flag decompresses while preserving the original gzip file).
+
+### Q3: Windows Agent shows status 'Disconnected' in Wazuh Dashboard
+- **Root Cause:** Host firewall on Ubuntu blocking TCP port 1514 or Wazuh Agent service stopped on Windows.
+- **Fix:** On Windows, test connectivity: `Test-NetConnection -ComputerName 192.168.56.10 -Port 1514`. On Ubuntu, ensure `sudo ufw allow 1514/tcp` is applied.
+
+### Q4: Why does Event ID 4625 show Logon Type 3 instead of Logon Type 10?
+- **Root Cause:** If **Network Level Authentication (NLA)** is enabled on Windows, authentication occurs at the network layer via CredSSP before initiating the terminal session, yielding Logon Type 3. Disabling NLA or connecting via non-NLA RDP prompts generates Logon Type 10.
+
+---
+
+## 11. Senior SOC Analyst Interview & Defense Guide
+
+When discussing this lab during a Senior SOC Analyst / Detection Engineer interview:
+
+### 1. "How do you distinguish between an automated brute-force attack and a password spray attack?"
+> *"In a **brute-force attack**, the attacker targets one or a few accounts with thousands of passwords in rapid succession from an IP, quickly triggering account lockouts and high-frequency Event ID 4625 spikes on that specific user. In a **password spray attack**, the attacker tries 1 or 2 common passwords against hundreds of different user accounts across hours to stay beneath account lockout thresholds and evade simple count-based detection."*
+
+### 2. "Why deploy Sysmon if Windows Security Auditing already captures Event ID 4625?"
+> *"Windows Event 4625 captures authentication attempts at the OS security boundary, but does not provide granular process lineage or network connection details. **Sysmon Event ID 3** records the raw socket connection, identifying whether the inbound connection was handled by `svchost.exe` (legitimate RDP) or a rogue listening port. If an attacker succeeds, **Sysmon Event ID 1** immediately records any shell (`cmd.exe`, `powershell.exe`) or discovery utility (`whoami.exe`) spawned by `rdpclip.exe` or `svchost.exe`, capturing command-line arguments and process hashes."*
+
+### 3. "How would you eliminate false positives from vulnerability scanners (e.g., Nessus, Qualys) triggering your brute-force rule?"
+> *"I implement whitelist exceptions in Wazuh detection rules based on known scanner IP subnets and dedicated scanning service accounts, while maintaining strict rate limits. For example, adding `<check_diff />` or `<condition negative="yes">` on verified security scanner source IPs, ensuring legitimate vulnerability assessments do not trigger critical incident alerts."*
+
+---
+
+## 12. 📸 Complete Visual Evidence Gallery
 
 This project incorporates a curated portfolio of **20 forensic and operational screenshots** detailing every layer of the detection lifecycle:
 
@@ -664,7 +769,7 @@ This project incorporates a curated portfolio of **20 forensic and operational s
 
 ---
 
-## 11. Repository Structure
+## 13. Repository Structure
 
 ```
 SOC-Detection-and-Threat-Hunting-Lab/
@@ -703,7 +808,7 @@ SOC-Detection-and-Threat-Hunting-Lab/
 
 ---
 
-# 12. Author
+# 14. Author
 
 ## Sandeep Mothukuri
 

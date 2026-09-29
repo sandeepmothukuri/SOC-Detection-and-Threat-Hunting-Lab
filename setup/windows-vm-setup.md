@@ -31,8 +31,12 @@ Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' 
 # Enable RDP through Windows Defender Firewall
 Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-# Optional: Disable Network Level Authentication (NLA) for raw RDP brute-force demonstration
+# Network Level Authentication (NLA) Configuration:
+# - Option A (Simulation / Testing): Disable NLA so brute-force tools without CredSSP support generate Event 4625 (Logon Type 10)
 (Get-WmiObject -Class Win32_TSGeneralSetting -Namespace root\cimv2\TerminalServices -Filter "TerminalName='RDP-Tcp'").SetUserAuthenticationRequired(0)
+
+# - Option B (Production Hardening): Enforce NLA (Requires CredSSP pre-authentication before terminal session setup)
+# (Get-WmiObject -Class Win32_TSGeneralSetting -Namespace root\cimv2\TerminalServices -Filter "TerminalName='RDP-Tcp'").SetUserAuthenticationRequired(1)
 
 # Verify RDP listening port
 Get-NetTCPConnection -LocalPort 3389 -State Listen
@@ -169,3 +173,29 @@ Look for:
 *Figure W5: Wazuh Dashboard confirming active Windows agent connection and continuous log transmission.*
 
 The Windows endpoint is now fully monitored and streaming real-time security events to your Wazuh SIEM.
+
+---
+
+## 🔧 6. Endpoint Troubleshooting & Verification Commands
+
+```powershell
+# 1. Test Network Connectivity to Wazuh Manager Port 1514 (Agent Telemetry)
+Test-NetConnection -ComputerName 192.168.56.10 -Port 1514
+
+# 2. Test Network Connectivity to Wazuh Enrollment Port 1515
+Test-NetConnection -ComputerName 192.168.56.10 -Port 1515
+
+# 3. Force-reapply Sysmon Configuration
+cd C:\Tools\Sysmon
+.\Sysmon64.exe -c sysmon-config.xml
+
+# 4. Clear Windows Security Log before running new attack simulations
+wevtutil cl Security
+```
+
+| Symptom | Probable Cause | Verification & Fix |
+|---|---|---|
+| **Agent stays 'Disconnected'** | Manager firewall blocking port 1514 | Run `Test-NetConnection -ComputerName <ManagerIP> -Port 1514` |
+| **Sysmon events missing in SIEM**| `<location>Microsoft-Windows-Sysmon/Operational</location>` missing in `ossec.conf` | Check `ossec.conf` localfile channel and restart `WazuhSvc` |
+| **Hydra fails to connect** | Windows Firewall blocking port 3389 or RDP service stopped | Run `Get-NetTCPConnection -LocalPort 3389 -State Listen` |
+| **Event 4625 not generated** | Audit policy disabled | Re-run `auditpol /set /subcategory:"Logon" /success:enable /failure:enable` |

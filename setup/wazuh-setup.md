@@ -53,10 +53,25 @@ sudo ufw status verbose
 
 ## 🚀 3. Step-by-Step Wazuh Installation
 
-### Step 3.1: System Preparation
+### Step 3.1: System Preparation & Kernel Memory Configuration
 ```bash
+# Update base repositories
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y curl apt-transport-https lsb-release gnupg2 tar
+sudo apt install -y curl apt-transport-https lsb-release gnupg2 tar ufw
+
+# CRITICAL: Configure Kernel Memory Map Count for OpenSearch/Wazuh Indexer
+# Wazuh Indexer requires vm.max_map_count >= 262144, otherwise it will crash on startup
+sudo sysctl -w vm.max_map_count=262144
+echo "vm.max_map_count=262144" | sudo tee -a /etc/sysctl.conf
+
+# Optional: Add 4GB swap space if host RAM is under 8GB
+if [ $(free -m | awk '/^Mem:/{print $2}') -lt 7500 ]; then
+  sudo fallocate -l 4G /swapfile
+  sudo chmod 600 /swapfile
+  sudo mkswap /swapfile
+  sudo swapon /swapfile
+  echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+fi
 ```
 
 ### Step 3.2: Download & Execute Wazuh All-in-One Installer
@@ -152,3 +167,44 @@ sudo systemctl restart wazuh-manager
 
 ![Microsoft Graph Monitoring with Wazuh](../images/architecture/wazuh-dashboard/monitoring-microsoft-graph-services-with-wazuh.png)
 *Figure S5: Microsoft Graph and Identity services monitoring in Wazuh.*
+
+---
+
+## ⚡ 7. Configuring Automated Active Response (Auto-Blocking Attacker IP)
+
+To configure Wazuh to automatically neutralize brute-force attacks at the host/network level, enable the `firewall-drop` active response command on the Wazuh Manager.
+
+Edit `/var/ossec/etc/ossec.conf` on the Wazuh Manager:
+
+```xml
+<!-- Active Response Command Definition -->
+<command>
+  <name>firewall-drop</name>
+  <executable>firewall-drop</executable>
+  <timeout_allowed>yes</timeout_allowed>
+</command>
+
+<!-- Trigger firewall-drop when Rule 100003 (RDP Brute Force) matches -->
+<active-response>
+  <command>firewall-drop</command>
+  <location>local</location>
+  <rules_id>100003</rules_id>
+  <timeout>600</timeout>
+</active-response>
+```
+
+Restart the manager to apply changes:
+```bash
+sudo systemctl restart wazuh-manager
+```
+
+---
+
+## 🔧 8. Troubleshooting & Common Operational Pitfalls
+
+| Issue | Root Cause | Remediation Command |
+|---|---|---|
+| **Wazuh Indexer fails to start** | `vm.max_map_count` lower than 262144 | `sudo sysctl -w vm.max_map_count=262144 && sudo systemctl restart wazuh-indexer` |
+| **Agent connection refused** | Port 1514/1515 blocked by host firewall | `sudo ufw allow 1514/tcp && sudo ufw allow 1515/tcp` |
+| **Dashboard displays 502 Bad Gateway**| Wazuh Indexer or API initializing | Wait 60s for Java heap allocation; check `journalctl -u wazuh-dashboard -f` |
+| **Rules syntax error on startup** | Invalid XML tag or duplicate rule ID | Validate XML with `python3 -c "import xml.etree.ElementTree as ET; ET.parse('rules.xml')"` |
