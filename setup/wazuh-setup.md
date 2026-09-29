@@ -17,6 +17,14 @@ Wazuh All-in-One central deployment integrates the **Wazuh Manager**, **Wazuh In
 | **Disk** | 50 GB SSD | 100 GB SSD |
 | **Network** | Static IP (Bridged / Host-Only) | Static IP (e.g., `192.168.56.10`) |
 
+### Architecture & Central Components Overview
+
+![Wazuh Architecture](../images/architecture/soc-architecture/wazuh-central-components.png)
+*Figure S1: Wazuh central server components including Wazuh Manager, Filebeat, and OpenSearch Indexer.*
+
+![Elastic Stack & Wazuh Integration](../images/architecture/soc-architecture/elastic-stack-integration.png)
+*Figure S2: Elastic Stack / OpenSearch ingestion pipeline, indexing, and visualization architecture.*
+
 ---
 
 ## 🌐 2. Network & Port Requirements
@@ -135,3 +143,12 @@ sudo systemctl restart wazuh-manager
 2. Accept the self-signed certificate.
 3. Log in with user `admin` and the password from `wazuh-passwords.txt`.
 4. Navigate to **Modules** -> **Security Events** to monitor real-time detections and agent telemetry.
+
+![Wazuh Dashboard Initial Access](../images/architecture/wazuh-dashboard/wazuh-dashboard-and-agent-deployment.png)
+*Figure S3: Wazuh Dashboard interface and agent deployment status.*
+
+![Wazuh Workload Monitoring](../images/architecture/wazuh-dashboard/monitoring-and-securing-cloud-workloads-with-wazuh.png)
+*Figure S4: Workload security dashboard displaying telemetry metrics.*
+
+![Microsoft Graph Monitoring with Wazuh](../images/architecture/wazuh-dashboard/monitoring-microsoft-graph-services-with-wazuh.png)
+*Figure S5: Microsoft Graph and Identity services monitoring in Wazuh.*

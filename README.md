@@ -51,8 +51,9 @@
    - [Microsoft Sentinel (KQL)](#microsoft-sentinel-kql-queries)
 8. [SOC Incident Response & Investigation Report](#-soc-incident-response--investigation-report)
 9. [Hardening & Defensive Countermeasures](#-hardening--defensive-countermeasures)
-10. [Repository Directory Structure](#-repository-directory-structure)
-11. [Author Profile & Portfolio](#-author)
+10. [Complete Visual Lab & Evidence Gallery](#-complete-visual-lab--evidence-gallery)
+11. [Repository Directory Structure](#-repository-directory-structure)
+12. [Author Profile & Portfolio](#-author)
 
 ---
 
@@ -112,6 +113,9 @@ The lab operates in an isolated virtualized sandbox network (`192.168.56.0/24`) 
 
 ![ELK & Wazuh Telemetry Ingestion](images/architecture/soc-architecture/combining-elk-wazuh-hids-and-elastalert-for-optimal-performance.png)
 *Figure 3: Telemetry ingestion, real-time decoding, correlation engine, and alerting pipeline.*
+
+![Elastic Stack Integration](images/architecture/soc-architecture/elastic-stack-integration.png)
+*Figure 4: Elastic Stack and OpenSearch Indexer distributed architecture integration.*
 
 ---
 
@@ -241,7 +245,7 @@ Verify in `C:\Program Files (x86)\ossec-agent\ossec.conf` that `Microsoft-Window
 Open the Wazuh Web Console at `https://192.168.56.10` and verify the agent status is **Active**:
 
 ![Wazuh Agent Dashboard](images/architecture/wazuh-dashboard/wazuh-dashboard-and-agent-deployment.png)
-*Figure 4: Wazuh Dashboard confirming active Windows agent deployment and real-time telemetry stream.*
+*Figure 5: Wazuh Dashboard confirming active Windows agent deployment and real-time telemetry stream.*
 
 ---
 
@@ -257,13 +261,13 @@ nmap -sS -sV -p 3389 -Pn 192.168.56.20
 ```
 
 ![Nmap Kali Terminal Scan](images/attacks/nmap-scan/nmap-scan-terminal-kali.webp)
-*Figure 5: Kali Linux terminal executing Nmap reconnaissance against port 3389.*
+*Figure 6: Kali Linux terminal executing Nmap reconnaissance against port 3389.*
 
 ![Nmap Port Scan Result](images/attacks/nmap-scan/nmap-external-port-scan-result.webp)
-*Figure 6: Nmap scan results confirming port 3389/tcp is open (`ms-wbt-server`).*
+*Figure 7: Nmap scan results confirming port 3389/tcp is open (`ms-wbt-server`).*
 
 ![Interpreting Scan Results](images/attacks/nmap-scan/interpreting-scan-results.png)
-*Figure 7: Attacker analysis identifying exposed Remote Desktop service ready for credential attack.*
+*Figure 8: Attacker analysis identifying exposed Remote Desktop service ready for credential attack.*
 
 ---
 
@@ -277,7 +281,7 @@ hydra -V -t 4 -l Administrator -P /usr/share/wordlists/rockyou.txt rdp://192.168
 ```
 
 ![Hydra Brute-Force Attack](images/attacks/nmap-scan/brute-force-attack.jpg)
-*Figure 8: Automated RDP password attack execution in progress.*
+*Figure 9: Automated RDP password attack execution in progress.*
 
 ---
 
@@ -302,16 +306,16 @@ chmod +x scripts/attack-simulation.sh
 During the attack, the Windows Security Event Log on `WIN10-ENDPOINT` records rapid **Audit Failure** entries under Event ID 4625.
 
 ![Windows Event Viewer 4625](images/logs/sysmon-process/generated-event-is-recorded-in-the-windows-event-log.png)
-*Figure 9: Windows Event Viewer logging high-frequency failed logon events (Event ID 4625).*
+*Figure 10: Windows Event Viewer logging high-frequency failed logon events (Event ID 4625).*
 
 ![Event 4625 Detail](images/architecture/bruteforce-alert/event-4625-failed-to-logon.png)
-*Figure 10: Windows Event ID 4625 detail view confirming Logon Type 10 (RemoteInteractive).*
+*Figure 11: Windows Event ID 4625 detail view confirming Logon Type 10 (RemoteInteractive).*
 
 ![Failed Logon Fields](images/architecture/bruteforce-alert/windows-event-id-4625-failed-logon.png)
-*Figure 11: Security event data displaying Status `0xC000006D` and Substatus `0xC000006A`.*
+*Figure 12: Security event data displaying Status `0xC000006D` and Substatus `0xC000006A`.*
 
 ![Process Information 4625](images/architecture/bruteforce-alert/process-information.png)
-*Figure 12: Event Process Information identifying `svchost.exe` (TermService host).*
+*Figure 13: Event Process Information identifying `svchost.exe` (TermService host).*
 
 #### Key Windows Security Fields Forensic Matrix
 
@@ -341,13 +345,13 @@ Target Account Name: Administrator
 Sysmon captures the network connection layer and process execution layer independently of Windows Security Auditing.
 
 ![Sysmon Network Logs](images/logs/sysmon-process/sysmon-logs-network.png)
-*Figure 13: Sysmon Operational Log capturing Event ID 3 inbound network connections.*
+*Figure 14: Sysmon Operational Log capturing Event ID 3 inbound network connections.*
 
 ![Sysmon Event ID 3 Record](images/logs/sysmon-process/sysmon-event-id-3---rdp-logon-issue-initiated--field-always-false.png)
-*Figure 14: Sysmon Event ID 3 deep inspection showing inbound connection to Port 3389.*
+*Figure 15: Sysmon Event ID 3 deep inspection showing inbound connection to Port 3389.*
 
 ![Workstation Telemetry View](images/logs/sysmon-process/workstation-logs.png)
-*Figure 15: Correlated endpoint workstation logs streaming to Wazuh.*
+*Figure 16: Correlated endpoint workstation logs streaming to Wazuh.*
 
 ---
 
@@ -419,13 +423,16 @@ Output:
 When the attack simulation runs, the Wazuh Security Events dashboard correlates the events into an active Level 10 Incident:
 
 ![Wazuh Alert Correlation Dashboard](images/architecture/wazuh-dashboard/log-data-analysis.png)
-*Figure 16: Wazuh Security Events Dashboard showing triggered Brute-Force alerts and MITRE ATT&CK categorization.*
+*Figure 17: Wazuh Security Events Dashboard showing triggered Brute-Force alerts and MITRE ATT&CK categorization.*
 
 ![Failed Logon Distribution](images/architecture/bruteforce-alert/failed-logon-events-id-4625-when-successfully-scanning-and-deploying-to-computers.png)
-*Figure 17: SIEM timeline visualization of spike in failed authentication attempts during the simulation.*
+*Figure 18: SIEM timeline visualization of spike in failed authentication attempts during the simulation.*
 
 ![Workload Security Overview](images/architecture/wazuh-dashboard/monitoring-and-securing-cloud-workloads-with-wazuh.png)
-*Figure 18: Workload security monitoring panel highlighting endpoint threat profile.*
+*Figure 19: Workload security monitoring panel highlighting endpoint threat profile.*
+
+![Microsoft Graph & Identity Monitoring](images/architecture/wazuh-dashboard/monitoring-microsoft-graph-services-with-wazuh.png)
+*Figure 20: Microsoft Graph and Identity services security monitoring integrated within Wazuh.*
 
 ---
 
@@ -522,6 +529,56 @@ A comprehensive Incident Response Report for this engagement is located in [`rep
 | **Unlimited Guessing** | Enable Account Lockout Policy | Lock account for 15 minutes after 5 failed attempts |
 | **Default User Targeted** | Rename default `Administrator` account | Disable built-in administrator; use tiered privileged accounts |
 | **Manual Host Containment**| Deploy Wazuh Active Response | Automatically trigger `firewall-drop` script upon rule 100003 match |
+
+---
+
+## 📸 Complete Visual Lab & Evidence Gallery
+
+This repository includes a comprehensive evidentiary portfolio of **20 forensic and operational screenshots** detailing every phase of the detection lifecycle:
+
+### Category A: Architecture & Telemetry Pipeline
+| Figure | Artifact Path | Description | Forensic Value |
+|---|---|---|---|
+| **Fig 1** | [`images/architecture/soc-architecture/architecture.png`](images/architecture/soc-architecture/architecture.png) | End-to-end SOC Architecture Topology | High-level data flow from attacker to endpoint to SIEM |
+| **Fig 2** | [`images/architecture/soc-architecture/wazuh-central-components.png`](images/architecture/soc-architecture/wazuh-central-components.png) | Wazuh Server Internal Daemons | Architecture of Manager, Filebeat, and Indexer |
+| **Fig 3** | [`images/architecture/soc-architecture/combining-elk-wazuh-hids-and-elastalert-for-optimal-performance.png`](images/architecture/soc-architecture/combining-elk-wazuh-hids-and-elastalert-for-optimal-performance.png) | Ingestion & Alerting Pipeline | Real-time decoding, rules engine, and correlation |
+| **Fig 4** | [`images/architecture/soc-architecture/elastic-stack-integration.png`](images/architecture/soc-architecture/elastic-stack-integration.png) | Distributed Elastic/OpenSearch Stack | Index management and telemetry aggregation |
+
+### Category B: Agent Deployment & Health Verification
+| Figure | Artifact Path | Description | Operational Value |
+|---|---|---|---|
+| **Fig 5** | [`images/architecture/wazuh-dashboard/wazuh-dashboard-and-agent-deployment.png`](images/architecture/wazuh-dashboard/wazuh-dashboard-and-agent-deployment.png) | Wazuh Agent Management Console | Active endpoint verification (`WIN10-ENDPOINT`) and status |
+
+### Category C: Red-Team Attack Simulation & Reconnaissance
+| Figure | Artifact Path | Description | Attack Phase |
+|---|---|---|---|
+| **Fig 6** | [`images/attacks/nmap-scan/nmap-scan-terminal-kali.webp`](images/attacks/nmap-scan/nmap-scan-terminal-kali.webp) | Nmap SYN Scan in Kali Terminal | Network Reconnaissance (`T1046`) targeting Port 3389 |
+| **Fig 7** | [`images/attacks/nmap-scan/nmap-external-port-scan-result.webp`](images/attacks/nmap-scan/nmap-external-port-scan-result.webp) | Nmap External Port Scan Output | Service identification (`ms-wbt-server` open) |
+| **Fig 8** | [`images/attacks/nmap-scan/interpreting-scan-results.png`](images/attacks/nmap-scan/interpreting-scan-results.png) | Scan Results Analysis | Fingerprinting target OS and attack surface exposure |
+| **Fig 9** | [`images/attacks/nmap-scan/brute-force-attack.jpg`](images/attacks/nmap-scan/brute-force-attack.jpg) | Hydra RDP Brute-Force Attack | Credential Access (`T1110.001`) automated password guessing |
+
+### Category D: Windows Security Event Forensics
+| Figure | Artifact Path | Description | Forensic Evidence |
+|---|---|---|---|
+| **Fig 10** | [`images/logs/sysmon-process/generated-event-is-recorded-in-the-windows-event-log.png`](images/logs/sysmon-process/generated-event-is-recorded-in-the-windows-event-log.png) | Windows Event Viewer Security Stream | High-frequency Event ID 4625 audit failure records |
+| **Fig 11** | [`images/architecture/bruteforce-alert/event-4625-failed-to-logon.png`](images/architecture/bruteforce-alert/event-4625-failed-to-logon.png) | Event ID 4625 Detail Inspection | Confirms Logon Type 10 (RemoteInteractive / RDP) |
+| **Fig 12** | [`images/architecture/bruteforce-alert/windows-event-id-4625-failed-logon.png`](images/architecture/bruteforce-alert/windows-event-id-4625-failed-logon.png) | Failure Status Codes Breakdown | Status `0xC000006D` & Sub Status `0xC000006A` |
+| **Fig 13** | [`images/architecture/bruteforce-alert/process-information.png`](images/architecture/bruteforce-alert/process-information.png) | Process Caller Information | Identifies caller `svchost.exe` (TermService host PID) |
+
+### Category E: Microsoft Sysmon Endpoint Telemetry
+| Figure | Artifact Path | Description | Endpoint Signal |
+|---|---|---|---|
+| **Fig 14** | [`images/logs/sysmon-process/sysmon-logs-network.png`](images/logs/sysmon-process/sysmon-logs-network.png) | Sysmon Operational Event Log | Inbound TCP network connection telemetry stream |
+| **Fig 15** | [`images/logs/sysmon-process/sysmon-event-id-3---rdp-logon-issue-initiated--field-always-false.png`](images/logs/sysmon-process/sysmon-event-id-3---rdp-logon-issue-initiated--field-always-false.png) | Sysmon Event ID 3 Forensic Record | Inbound connection from `192.168.56.30` to `3389` |
+| **Fig 16** | [`images/logs/sysmon-process/workstation-logs.png`](images/logs/sysmon-process/workstation-logs.png) | Workstation Event Correlator | Consolidated endpoint event logs forwarding to Wazuh |
+
+### Category F: Wazuh SIEM Detection, Triage & Cloud Workload Monitoring
+| Figure | Artifact Path | Description | SOC Operations |
+|---|---|---|---|
+| **Fig 17** | [`images/architecture/wazuh-dashboard/log-data-analysis.png`](images/architecture/wazuh-dashboard/log-data-analysis.png) | Wazuh Security Events Dashboard | Live detection alert triage, rule levels, and ATT&CK tags |
+| **Fig 18** | [`images/architecture/bruteforce-alert/failed-logon-events-id-4625-when-successfully-scanning-and-deploying-to-computers.png`](images/architecture/bruteforce-alert/failed-logon-events-id-4625-when-successfully-scanning-and-deploying-to-computers.png) | Authentication Failure Temporal Trend | Spike analysis of Event 4625 failures during attack run |
+| **Fig 19** | [`images/architecture/wazuh-dashboard/monitoring-and-securing-cloud-workloads-with-wazuh.png`](images/architecture/wazuh-dashboard/monitoring-and-securing-cloud-workloads-with-wazuh.png) | Workload Security & Telemetry Overview | Comprehensive endpoint vulnerability and threat metrics |
+| **Fig 20** | [`images/architecture/wazuh-dashboard/monitoring-microsoft-graph-services-with-wazuh.png`](images/architecture/wazuh-dashboard/monitoring-microsoft-graph-services-with-wazuh.png) | Identity & Access Management Monitoring | Cloud identity and Microsoft Graph security telemetry |
 
 ---
 

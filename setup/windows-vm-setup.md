@@ -61,6 +61,9 @@ New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies
 auditpol /get /category:"Logon/Logoff"
 ```
 
+![Windows Security Event Log Generated](../images/logs/sysmon-process/generated-event-is-recorded-in-the-windows-event-log.png)
+*Figure W1: Windows Event Viewer validating that Security Auditing events are successfully captured.*
+
 ---
 
 ## 🔍 4. Install & Configure Microsoft Sysmon
@@ -91,6 +94,12 @@ Get-Service -Name "Sysmon64"
 # Query the latest 5 Sysmon events
 Get-WinEvent -LogName "Microsoft-Windows-Sysmon/Operational" -MaxEvents 5 | Format-Table TimeCreated, Id, Message -Wrap
 ```
+
+![Sysmon Operational Logs](../images/logs/sysmon-process/sysmon-logs-network.png)
+*Figure W2: Microsoft-Windows-Sysmon Operational channel capturing detailed telemetry.*
+
+![Sysmon Event ID 3 Network Record](../images/logs/sysmon-process/sysmon-event-id-3---rdp-logon-issue-initiated--field-always-false.png)
+*Figure W3: Sysmon Event ID 3 record details highlighting inbound network connection.*
 
 ---
 
@@ -152,5 +161,11 @@ Get-Content -Tail 20 "C:\Program Files (x86)\ossec-agent\ossec.log"
 Look for:
 `Connected to the server (192.168.56.10:1514/tcp)`  
 `Valid key received`
+
+![Workstation Telemetry Logs](../images/logs/sysmon-process/workstation-logs.png)
+*Figure W4: Workstation security and operational logs active and streaming.*
+
+![Wazuh Agent Active in Dashboard](../images/architecture/wazuh-dashboard/wazuh-dashboard-and-agent-deployment.png)
+*Figure W5: Wazuh Dashboard confirming active Windows agent connection and continuous log transmission.*
 
 The Windows endpoint is now fully monitored and streaming real-time security events to your Wazuh SIEM.

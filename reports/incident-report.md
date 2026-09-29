@@ -88,6 +88,18 @@ Process Information:
 - **Sub Status `0xC000006A`:** The user name is valid, but the password provided was incorrect.
 - **Logon Type `10`:** Confirms remote desktop protocol entry attempt.
 
+![Event 4625 Forensic Record](../images/architecture/bruteforce-alert/event-4625-failed-to-logon.png)
+*Exhibit A: Detailed Windows Event ID 4625 record documenting Logon Type 10 failure from attacker host.*
+
+![Failed Logon Security Properties](../images/architecture/bruteforce-alert/windows-event-id-4625-failed-logon.png)
+*Exhibit B: Windows Security log properties highlighting Status 0xC000006D and Sub Status 0xC000006A.*
+
+![Process Information Caller Svchost](../images/architecture/bruteforce-alert/process-information.png)
+*Exhibit C: Process caller information identifying svchost.exe hosting TermService.*
+
+![Security Event Log Stream](../images/logs/sysmon-process/generated-event-is-recorded-in-the-windows-event-log.png)
+*Exhibit D: Windows Event Viewer showing rapid burst of failed logon entries.*
+
 ### 4.2 Sysmon Telemetry Evidence: Inbound Network Connection (Event ID 3)
 ```
 Log Name:      Microsoft-Windows-Sysmon/Operational
@@ -110,6 +122,12 @@ Description:   Network connection detected:
     DestinationIp:      192.168.56.20
     DestinationPort:    3389
 ```
+
+![Sysmon Network Event Viewer](../images/logs/sysmon-process/sysmon-logs-network.png)
+*Exhibit E: Sysmon Operational Log capturing inbound TCP connections from 192.168.56.30 to port 3389.*
+
+![Sysmon Event ID 3 Details](../images/logs/sysmon-process/sysmon-event-id-3---rdp-logon-issue-initiated--field-always-false.png)
+*Exhibit F: Forensic view of Sysmon Event ID 3 confirming uninitiated inbound network connection.*
 
 ### 4.3 Wazuh Alert Record (JSON)
 ```json
@@ -147,6 +165,12 @@ Description:   Network connection detected:
   }
 }
 ```
+
+![Wazuh Alert Triage Dashboard](../images/architecture/wazuh-dashboard/log-data-analysis.png)
+*Exhibit G: Wazuh SIEM Security Events Dashboard displaying correlated Rule 100003 alert trigger and MITRE ATT&CK mapping.*
+
+![Failed Logon Distribution Chart](../images/architecture/bruteforce-alert/failed-logon-events-id-4625-when-successfully-scanning-and-deploying-to-computers.png)
+*Exhibit H: Temporal log analysis showing acute spike in Event ID 4625 authentication failures.*
 
 ---
 
